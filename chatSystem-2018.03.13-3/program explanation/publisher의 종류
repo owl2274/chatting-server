@@ -1,0 +1,99 @@
+public interface Publisher<T>{
+	public void contractWith(Author<T> author);
+	public void breakContract(Author<T> author);
+	
+	public void registerSubscriber(Subscriber<T> subscriber);
+	public void removeSubscriber(Subscriber<T> Subscriber);
+}
+
+
+author와의 계약 체결과 해지를 위한 
+	public void contractWith(Author<T> author);
+	public void breakContract(Author<T> author);
+	
+subscriber와의 구독 등록과 구독 취소를 위한
+	public void registerSubscriber(Subscriber<T> subscriber);
+	public void removeSubscriber(Subscriber<T> Subscriber);
+	
+어떻게 author들의 결과물을 걷어갈지, 어떻게 subscriber에게 결과물을 전달할지에 대한 메소드는 선언되지 않았으므로 Publisher 인터페이스를 상속받는 클래스에서 구현되어야 한다.
+
+MessagePublisher: publisher의 실제 구현을 위해 만들어진 클래스. 주로 쓰레드를 이용하여 동작이 진행된다.
+	Collection<Subscriber<T>> subscriberVector : 가입된 subscriber들을 저장한 collection
+	Collection<Author<T>> authorVector : 계약된 author들을 저장한 collection
+	
+	BlockingQueue<T> messageQueue : author에게서 전달받은 작업물을 저장하는 queue이다.
+	Thread transmission : subscriber들에게 작업물을 전달하기 위해 존재하는 쓰레드. 무한 루프로 구성되어 있으며, messageQueue에서 작업물을 꺼내 subscriber에게 전달한다. 작업물이 존재하지 않는다면 새로운 작업물이 들어올 때까지 blocking된다.
+	ExecutorService executorService : 새로운 author가 계약되면 author의 작업을 위해 새로운 쓰레드가 생성되며, 이 쓰레드를 관리하기 위한 쓰레드 풀이다.
+	
+	주요 내부 쓰레드, 메소드
+	class AuthorRoom implements Runnable {
+		Author<T> author;
+		
+		public AuthorRoom(Author<T> author) {
+			this.author = author;
+		}
+
+		@Override
+		public void run() {
+			while (true) {
+				T message = author.write();
+		
+				if (message == null) {
+					breakContract(author);
+					System.out.println(Thread.currentThread().getName()+" is down");
+					return;
+				}
+				receiveMessage(message);
+				
+			}
+		}
+		
+	}
+	
+	public void receiveMessage(T message) {
+		System.out.println(message);
+		try {
+			messageQueue.put(message);
+		} catch (InterruptedException e) {
+			exceptionQueue.add(e);
+		}
+		
+	}
+	새로운 author가 계약되면 author의 작업을 위해 생성되는 AuthorRoom 쓰레드
+	내부적으로 author.write()를 반복적으로 호출하며, 받은 결과물을receiveMessage(T message) 메소드로 messageQueue에 저장한다.
+	author.write()가 null을 반환하면 계약 해지로 받아들이고 breakContract(Author<T> author)를 호출하여 계약 해지한다.
+	
+	
+	class Transmission extends Thread{
+		@Override
+		public void run() {
+			while(true) {	
+				postMessage();				
+			}
+			
+		}		
+	}
+	public void postMessage() {
+		Collection<Subscriber<T>> removeSubscribers = new Vector<Subscriber<T>>();
+		
+		T message;
+		try {
+			message = messageQueue.take();
+		} catch (InterruptedException e) {
+			exceptionQueue.add(e);
+			return;
+		}
+		synchronized (subscriberVector) {
+			for (Subscriber<T> subscriber : subscriberVector) {
+						
+				if (!subscriber.read(message))
+					removeSubscribers.add(subscriber);
+			}
+					
+		}
+		subscriberVector.removeAll(removeSubscribers);		
+	}
+	subscriber에게 작업물을 보내기 위해 postMessage()를 반복 호출한다.
+	postMessage()는 완성된 작업물이 있다면 모든 subscriber에게 작업물을 전송하고, 없다면 새로운 작업물이 messageQueue에 저장될 때까지 blocking된다.
+	subscriber.read(T message)를 호출하여 false가 리턴된 subscriber는 구독 취소로 받아들이고 subscriberVector에서 삭제된다.
+

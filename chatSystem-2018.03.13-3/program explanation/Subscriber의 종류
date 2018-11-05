@@ -1,0 +1,24 @@
+public interface Subscriber<T> {
+	public boolean read(T message);
+	public void close();
+}
+모든 subscriber는 이 Subscriber 인터페이스를 상속받는다.
+publisher는 read(T message) 메소드를 호출하여 subscriber에게 작업물을 전송한다.
+public boolean read(T message)를 오버라이드하여 구현할 때 주의할 점은, read(T message)를 호출 할 때 non-blocking되도록 해야 한다.
+
+FileLogger : publisher가 보낸 메세지를 파일에 기록하기 위한 클래스
+	FileChannel의 객체를 포함하고 있다.
+
+NetworkClient : 네트워크를 통해 메세지를 주고받는, 채팅 시스템의 실제 사용자이다. 메세지를 받는 것만이 아니라 보내기 위해 author 인터페이스까지 다중 상속을 받는다.
+	포함 관계에 있는 객체
+	Socket socket : 네트워크를 통해 메세지를 주고받기 위해 존재한다.
+	Account account : id, password 등 사용자의 게정 정보를 가지고 있는 객체이다. 
+	measureTime timer : 특정 횟수의 메세지를 보내는 데 지나치게 짧은 시간이 걸리지는 않는지 체크하는 객체. 즉, 메세지를 도배하는 사람을 차단하기 위해 존재한다. 메세지를 지나치게 도배하는 이용자는 연결을 끊어 서버의 부하를 줄인다.
+
+PipeForRead : publisher가 보낸 메세지를 queue에 저장하는 클래스
+	queue는 thread-safe이며, String takeMessage()를 사용해 메세지를 꺼낸다.
+	Publisher가 메세지를 보내더라도 queue에 저장되기 떄문에 바로 읽지 않고 보류해도 문제가 발생하지 않는다.
+	만약 메세지가 없는 상황에 takeMessage()를 호출하면 blocking된다.
+	이 객체는 다른 애플리케이션이나 서버 자체에서 메세지를 확인하고자 할 때 쓰이며, 이 프로그램에서는 서버의 gui 화면에 표시하기 위해 존재한다.
+	
+

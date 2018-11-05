@@ -1,0 +1,7 @@
+디자인 패턴을 공부하던 중, observer패턴에 대해 깊은 인상을 갖게 되었으며, 이 observer패턴을 채팅 서버 시스템에 적용할 수 없을까 하는 생각에서 프로젝트를 시작하였다.
+이 채팅 서버 시스템은 observer 패턴을 조금 확장하여 subscriber-publisher-author의 패턴을 가진다.
+구독자들과 출판사, 그리고 출판사에 글을 올리는 작가를 떠올리며 해당 패턴을 고안했다.
+subscriber와 publisher는 일반적인 observer패턴의 Observer와 Publisher의 관계와 같다.
+publisher와 author는 observer패턴을 역으로 발상하여 Publisher(author)가 Observer(publisher)에게 데이터를 줄 때까지 기다리지 않고,  Publisher(author)의 작업이 완료되는 대로 Observer(publisher)가 바로 걷어가는 방식이다.
+
+publisher는 계약된 각 author의 작업이 완료되는 대로 가입된 구독자들에게 결과물을 바로 전송한다.

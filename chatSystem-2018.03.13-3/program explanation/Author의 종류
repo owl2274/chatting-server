@@ -1,0 +1,20 @@
+public interface Author<T>{
+	public T write();
+	public void close();
+}
+모든 author는 이 Author 인터페이스를 상속받는다.
+publisher는 write 메소드를 호출하여 author의 작업물을 받는다.
+public T write()를 오버라이드하여 구현할 때 주의할 점은, author가 작업이 완료되지 않았다면 write()를 호출할 때 blocking되도록 해야 한다.
+
+
+NetworkClient : 네트워크를 통해 메세지를 주고받는, 채팅 시스템의 실제 사용자이다. 메세지를 받고, 보내는 행위를 모두 해야 하기에 Subscriber와 Author 인터페이스를 다중 상속을 받는다.
+	포함 관계에 있는 객체
+	Socket socket : 네트워크를 통해 메세지를 주고받기 위해 존재한다.
+	Account account : id, password 등 사용자의 게정 정보를 가지고 있는 객체이다. 
+	measureTime timer : 특정 횟수의 메세지를 보내는 데 지나치게 짧은 시간이 걸리지는 않는지 체크하는 객체. 즉, 메세지를 도배하는 사람을 차단하기 위해 존재한다. 메세지를 지나치게 도배하는 이용자는 연결을 끊어 서버의 부하를 줄인다.
+
+PipeForRead : Publisher에 보낼 메세지를 queue에 저장하는 클래스
+	queue는 thread-safe이며, void putMessage(String message)를 사용해 메세지를 넣는다.
+	Publisher가 메세지를 바로 받지 않고 queue에 저장된 메세지를 읽기 때문에 queue에 전달할 메세지를 넣고 바로 다른 작업을 진행할 수 있다.
+	Publisher가 write를 통해 메세지를 받아 가려 할 때, 저장된 메세지가 없다면 blocking된다.
+	이 객체는 다른 애플리케이션이나 서버 자체에서 Publisher에게 메세지를 전달하고자 할 때 쓰이며, 이 프로그램에서는 서버의 gui에서 입력받은 텍스트를 전달하기 위해 사용된다.
